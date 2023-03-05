@@ -1,7 +1,12 @@
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
+// const cookieParser = require('cookie-parser');
+const bodyParser = require('body-parser');
 
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// app.use(cookieParser());
 
 app.set("view engine", "ejs");
 
@@ -25,6 +30,15 @@ app.get("/urls/:id", (req,res) => {
   const templeVars = {id: req.params.id, longURL: urlDatabase[req.params.id] };
   res.render("urls_show", templeVars);
 });
+
+
+
+app.post('/login', (req, res) => {
+  const { username } = req.body;
+  res.cookie('username', username);
+  res.redirect('/');
+});
+
 
 
 app.post('/urls/:id', (req, res) => {
