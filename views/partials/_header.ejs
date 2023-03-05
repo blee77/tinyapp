@@ -22,10 +22,10 @@
       <ul>
        
         <% if (username) { %>
-          <li>Welcome, <%= username %>!</li>
-          <li><form method="POST" action="/logout"><button type="submit">Logout</button></form></li>
+          Logged in as: <%= username %>!
+          <form method="POST" action="/logout"><button type="submit">Logout</button></form>
         <% } else { %>
-          <li><form method="POST" action="/login"><input type="text" name="username" placeholder="username"><button type="submit">Login</button></form></li>
+          <form method="POST" action="/login"><input type="text" name="username" placeholder="username"><button type="submit">Login</button></form>
         <% } %>
       </ul> 
 

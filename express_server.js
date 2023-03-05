@@ -49,6 +49,12 @@ app.post('/login', (req, res) => {
 });
 
 
+app.post('/logout', (req, res) => {
+  const { username } = req.body;
+  res.clearCookie('username', username);
+  res.redirect('/urls');
+});
+
 
 
 app.post('/urls/:id', (req, res) => {
