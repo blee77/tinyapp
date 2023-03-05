@@ -26,6 +26,17 @@ app.get("/urls/:id", (req,res) => {
   res.render("urls_show", templeVars);
 });
 
+
+app.post('/urls/:id', (req, res) => {
+  const id = req.params.id;
+  const longURL = req.body.longURL;
+  // Update the stored long URL based on the new value in req.body
+  urlDatabase[id] = longURL;
+  res.redirect('/urls');
+});
+
+
+
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
