@@ -1,43 +1,53 @@
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
-// const cookieParser = require('cookie-parser');
+const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// app.use(cookieParser());
+app.use(cookieParser());
 
 app.set("view engine", "ejs");
+
+app.use(express.urlencoded({ extended: true }));
+
 
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
 };
 
-app.use(express.urlencoded({ extended: true }));
 
 app.get("/urls", (req,res) => {
-  const templeVars = {urls: urlDatabase};
+  const templeVars = {urls: urlDatabase, username: req.cookies['username']};
   res.render("urls_index", templeVars);
 });
 
-app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+
+
+app.get('/urls/new', (req, res) => {
+  const templateVars = {
+    username: req.cookies['username']
+  };
+  res.render('urls_new', templateVars);
 });
 
+
 app.get("/urls/:id", (req,res) => {
-  const templeVars = {id: req.params.id, longURL: urlDatabase[req.params.id] };
+  const templeVars = {id: req.params.id, longURL: urlDatabase[req.params.id] ,username: req.cookies['username']};
   res.render("urls_show", templeVars);
 });
+
 
 
 
 app.post('/login', (req, res) => {
   const { username } = req.body;
   res.cookie('username', username);
-  res.redirect('/');
+  res.redirect('/urls');
 });
+
 
 
 
