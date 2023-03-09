@@ -40,6 +40,9 @@ app.get("/urls/:id", (req,res) => {
 });
 
 
+app.get("/register", (req,res) => {
+  res.render("user_registration");
+});
 
 
 app.post('/login', (req, res) => {
