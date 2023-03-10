@@ -45,22 +45,57 @@ app.post('/register', (req, res) => {
   const userId = generateRandomString(); // generate random user ID
 
   // Create new user object and add to global users object
-  const newUser = {
-    id: userId,
-    email,
-    password
-  };
-  users[userId] = newUser;
+  // const newUser = {
+  //   id: userId,
+  //   email,
+  //   password
+  // };
+  // users[userId] = newUser;
 
+  
   // Set user_id cookie with newly generated ID
   res.cookie('user_id', userId);
 
-  // Redirect to /urls page
-  res.redirect('/urls');
+  
+ 
 
   // Debugging log to inspect users object
   console.log(users);
+
+
+
+
+  // check if email and password are provided
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Email and password are required' });
+  }
+
+  // helper function to lookup user by email
+  const getUserByEmail = function(email) {
+    for (const user of Object.values(users)) {
+      if (user.email === email) {
+        return user;
+      }
+    }
+    return null;
+  };
+
+  // check if user already exists
+  const existingUser = getUserByEmail(email);
+  console.log(existingUser);
+  if (existingUser) {
+    return res.status(400).json({ message: 'Email already registered' });
+  }
+
+// send success response
+  return res.status(200).json({ message: 'User registered successfully' });
+
 });
+
+//received the data  R
+//check if that data exists C
+//validate the data V
+//send a success or fail response to the user. S
 //----------------------------------------------------------
 
 
@@ -78,9 +113,7 @@ app.get("/urls", (req,res) => {
 });
 
 app.get('/urls/new', (req, res) => {
-  // const templateVars = {
-  //   username: req.cookies['username']
-  // };
+  
   const userId = req.cookies["user_id"];
   let userObj = null;
   for (let user of Object.values(users)) {
@@ -88,7 +121,7 @@ app.get('/urls/new', (req, res) => {
       userObj = user;
     }
   }
-  console.log("75" ,userObj);
+ 
   const templateVars = {urls: urlDatabase, user: userObj};
   res.render('urls_new', templateVars);
 });
