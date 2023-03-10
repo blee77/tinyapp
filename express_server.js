@@ -70,15 +70,7 @@ app.post('/register', (req, res) => {
     return res.status(400).json({ message: 'Email and password are required' });
   }
 
-  // helper function to lookup user by email
-  const getUserByEmail = function(email) {
-    for (const user of Object.values(users)) {
-      if (user.email === email) {
-        return user;
-      }
-    }
-    return null;
-  };
+  
 
   // check if user already exists
   const existingUser = getUserByEmail(email);
@@ -87,10 +79,12 @@ app.post('/register', (req, res) => {
     return res.status(400).json({ message: 'Email already registered' });
   }
 
-// send success response
+  // send success response
   return res.status(200).json({ message: 'User registered successfully' });
 
 });
+
+
 
 //received the data  R
 //check if that data exists C
@@ -187,10 +181,42 @@ app.get('/u/:id', (req, res) => {
   res.redirect(longURL);
 });
 
+//---------------------------------
+// Handle POST request to /login
+app.post('/login', (req, res) => {
+  const { email, password } = req.body;
+  const existingUser = getUserByEmail(email);
+  if (existingUser.password !== password) {
+    return res.send("Password is incorrect!");
+  }
+  res.cookie('user_id', existingUser.id);
+  res.redirect("/urls");
+  // Handle login logic here
+});
+
+// Render login page with GET request to /login
+app.get('/login', (req, res) => {
+  const { email, password } = req.body;
+  const existingUser = getUserByEmail(email);
+  
+  res.render('login', {user: existingUser });
+});
+
+//------------------------------------
+
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
 
+// helper function to lookup user by email
+const getUserByEmail = function(email) {
+  for (const user of Object.values(users)) {
+    if (user.email === email) {
+      return user;
+    }
+  }
+  return null;
+};
 
 
 let generateRandomString = () => {
@@ -205,3 +231,4 @@ let generateRandomString = () => {
 };
 
 generateRandomString();
+
