@@ -37,7 +37,8 @@ const users = {
 
 
 app.get("/register", (req,res) => {
-  res.render("user_registration");
+  const templeVars = {user: users[req.cookies.user_id]};
+  res.render("user_registration", templeVars);
 });
 
 app.post('/register', (req, res) => {
@@ -196,7 +197,7 @@ app.post('/login', (req, res) => {
 
 // Render login page with GET request to /login
 app.get('/login', (req, res) => {
-  const { email, password } = req.body;
+  const { email, password} = req.body;
   const existingUser = getUserByEmail(email);
   
   res.render('login', {user: existingUser });
