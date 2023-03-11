@@ -7,6 +7,7 @@ const morgan = require('morgan');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 
+const { getUserByEmail, generateRandomString } = require('./helper');
 //Middleware
 app.use(morgan('dev'));
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -37,51 +38,33 @@ const users = {
 
 
 app.get("/register", (req,res) => {
-  const templeVars = {user: users[req.cookies.user_id]};
-  res.render("user_registration", templeVars);
+  const templateVars = { user: users[req.cookies.user_id]};
+  res.render("user_registration", templateVars);
 });
 
 app.post('/register', (req, res) => {
   const { email, password } = req.body;
-  const userId = generateRandomString(); // generate random user ID
-
-  // Create new user object and add to global users object
-  // const newUser = {
-  //   id: userId,
-  //   email,
-  //   password
-  // };
-  // users[userId] = newUser;
-
-  
-  // Set user_id cookie with newly generated ID
-  res.cookie('user_id', userId);
-
-  
- 
-
-  // Debugging log to inspect users object
-  console.log(users);
-
-
-
-
-  // check if email and password are provided
   if (!email || !password) {
     return res.status(400).json({ message: 'Email and password are required' });
   }
 
+  const existingUser = getUserByEmail(email, users);
   
-
-  // check if user already exists
-  const existingUser = getUserByEmail(email);
-  console.log(existingUser);
   if (existingUser) {
     return res.status(400).json({ message: 'Email already registered' });
   }
 
-  // send success response
-  return res.status(200).json({ message: 'User registered successfully' });
+  const userId = generateRandomString(); // generate random user ID
+
+  users[userId] = {
+    id: userId,
+    email,
+    password
+  };
+  
+  // Set user_id cookie with newly generated ID
+  res.cookie('user_id', userId);
+  return res.redirect("/urls");
 
 });
 
@@ -96,47 +79,68 @@ app.post('/register', (req, res) => {
 
 app.get("/urls", (req,res) => {
   const userId = req.cookies["user_id"];
-  let userObj = null;
-  for (let user of Object.values(users)) {
-    if (user.id === userId) {
-      userObj = user;
-    }
-  }
-  console.log("75" ,userObj);
-  const templeVars = {urls: urlDatabase, user: userObj};
-  res.render("urls_index", templeVars);
+  const templateVars = {urls: urlDatabase, user: users[userId]};
+
+  res.render("urls_index", templateVars);
 });
 
 app.get('/urls/new', (req, res) => {
-  
   const userId = req.cookies["user_id"];
-  let userObj = null;
-  for (let user of Object.values(users)) {
-    if (user.id === userId) {
-      userObj = user;
-    }
-  }
- 
-  const templateVars = {urls: urlDatabase, user: userObj};
+  const templateVars = { user: users[userId] };
+
   res.render('urls_new', templateVars);
 });
 
 app.get("/urls/:id", (req,res) => {
-  const templeVars = {id: req.params.id, longURL: urlDatabase[req.params.id] ,username: req.cookies['username']};
-  res.render("urls_show", templeVars);
+  const userId = req.cookies['user_id'];
+  const templateVars = {
+    id: req.params.id,
+    longURL: urlDatabase[req.params.id],
+    user: users[userId]
+  };
+
+  res.render("urls_show", templateVars);
 });
 
+
+//----------------------------------
+
+// Define the login handler
 app.post('/login', (req, res) => {
-  const { username } = req.body;
-  res.cookie('username', username);
+  const { email, password } = req.body;
+
+  // Look up the user by email
+  const existingUser = getUserByEmail(email, users);
+
+  // If user not found, send 403 response
+  if (!existingUser) {
+    res.status(403).send('Invalid email or password.');
+    return;
+  }
+
+  // If password does not match, send 403 response
+  if (existingUser.password !== password) {
+    res.status(403).send('Invalid email or password.');
+    return;
+  }
+
+  // Set the user_id cookie with the matching user's ID
+  res.cookie('user_id', existingUser.id);
+
+  // Redirect to /urls
   res.redirect('/urls');
 });
 
+// Define the logout handler
 app.post('/logout', (req, res) => {
-  const { username } = req.body;
-  res.clearCookie('username', username);
-  res.redirect('/urls');
+  // Clear the user_id cookie
+  res.clearCookie('user_id');
+
+  // Redirect to /login
+  res.redirect('/login');
 });
+
+  
 
 
 
@@ -150,16 +154,15 @@ app.post('/urls/:id', (req, res) => {
 
 
 
-app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
-});
+
 
 app.get("/", (req, res) => {
-  res.send("Hello!");
-});
-
-app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n");
+  const userId = req.cookies['user_id'];
+  if (userId) {
+    res.redirect("/urls");
+  } else {
+    res.redirect("/login");
+  }
 });
 
 app.post("/urls/:id/delete", (req,res) => {
@@ -173,8 +176,6 @@ app.post("/urls", (req, res) => {
   const longURL = req.body.longURL;
   urlDatabase[shortURL] = longURL;
   res.redirect(`/urls/${shortURL}`);
-  // console.log(req.body); // Log the POST request body to the console
-  // res.send("Ok"); // Respond with 'Ok' (we will replace this)
 });
 
 app.get('/u/:id', (req, res) => {
@@ -182,54 +183,16 @@ app.get('/u/:id', (req, res) => {
   res.redirect(longURL);
 });
 
-//---------------------------------
-// Handle POST request to /login
-app.post('/login', (req, res) => {
-  const { email, password } = req.body;
-  const existingUser = getUserByEmail(email);
-  if (existingUser.password !== password) {
-    return res.send("Password is incorrect!");
-  }
-  res.cookie('user_id', existingUser.id);
-  res.redirect("/urls");
-  // Handle login logic here
-});
 
 // Render login page with GET request to /login
 app.get('/login', (req, res) => {
-  const { email, password} = req.body;
-  const existingUser = getUserByEmail(email);
-  
-  res.render('login', {user: existingUser });
+  res.render('login', {user: null });
 });
+
+
 
 //------------------------------------
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
-
-// helper function to lookup user by email
-const getUserByEmail = function(email) {
-  for (const user of Object.values(users)) {
-    if (user.email === email) {
-      return user;
-    }
-  }
-  return null;
-};
-
-
-let generateRandomString = () => {
-  const length = 6;
-  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    const randomIndex = Math.floor(Math.random() * chars.length);
-    result += chars[randomIndex];
-  }
-  return result;
-};
-
-generateRandomString();
-

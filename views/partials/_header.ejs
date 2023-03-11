@@ -18,15 +18,16 @@
         
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
       </div>
-      <ul>
+      <ul class="navbar-nav ml-auto">
         <% if (user) { %>
           Logged in as: <%= user.email %>!
           <form method="POST" action="/logout"><button type="submit">Logout</button></form>
         <% } else { %>
+          <div><a href="/register">Register</a></div>
+          &nbsp;  &nbsp; 
+          <div><a href="/login">Login</a></div>
           
-          <li><a href="/register">Register</a></li>
-          <li><a href="/login">Login</a></li>
-        
+         
         <% } %>
         
       </ul> 
