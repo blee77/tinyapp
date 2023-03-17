@@ -38,8 +38,12 @@ const users = {
 
 
 app.get("/register", (req,res) => {
-  const templateVars = { user: users[req.cookies.user_id]};
+  if (req.cookies.user_id) {
+    res.redirect("/urls");
+  }
+  const templateVars = { user:false};
   res.render("user_registration", templateVars);
+  
 });
 
 app.post('/register', (req, res) => {
@@ -84,11 +88,17 @@ app.get("/urls", (req,res) => {
   res.render("urls_index", templateVars);
 });
 
-app.get('/urls/new', (req, res) => {
+
+app.get("/urls/new", (req, res) => {
   const userId = req.cookies["user_id"];
   const templateVars = { user: users[userId] };
 
-  res.render('urls_new', templateVars);
+  if (!userId) {
+    res.redirect("/login");
+  } else {
+    // render the new URL form
+    res.render('urls_new', templateVars);
+  }
 });
 
 app.get("/urls/:id", (req,res) => {
@@ -101,6 +111,9 @@ app.get("/urls/:id", (req,res) => {
 
   res.render("urls_show", templateVars);
 });
+
+
+
 
 
 //----------------------------------
@@ -171,21 +184,39 @@ app.post("/urls/:id/delete", (req,res) => {
 });
 
 
+
+
 app.post("/urls", (req, res) => {
-  const shortURL = generateRandomString();
-  const longURL = req.body.longURL;
-  urlDatabase[shortURL] = longURL;
-  res.redirect(`/urls/${shortURL}`);
+  if (!req.cookies.user_id) {
+    res.status(401).send("You must be logged in to shorten URLs.");
+  } else {
+    // add the URL to the database and redirect to the URLs index page
+    const shortURL = generateRandomString();
+    const longURL = req.body.longURL;
+    urlDatabase[shortURL] = longURL;
+    res.redirect(`/urls/${shortURL}`);
+  }
 });
 
-app.get('/u/:id', (req, res) => {
-  const longURL = urlDatabase[req.params.id];
-  res.redirect(longURL);
-});
 
+
+app.get("/u/:id", (req, res) => {
+  const shortURL = req.params.id;
+  const longURL = urlDatabase[shortURL];
+  if (!longURL) {
+    res.status(404).send("This short URL does not exist.");
+  } else {
+    // redirect to the long URL
+    res.redirect(longURL);
+  }
+});
 
 // Render login page with GET request to /login
 app.get('/login', (req, res) => {
+  
+  if (req.cookies.user_id) {
+    return res.status(401).send("You must be logged in to shorten URLs.");
+  }
   res.render('login', {user: null });
 });
 
@@ -196,3 +227,7 @@ app.get('/login', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
+
+
+
+//-----------------
