@@ -17,8 +17,14 @@ app.use(express.urlencoded({ extended: true }));
 app.set("view engine", "ejs");
 
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  b6UTxQ: {
+    longURL: "https://www.tsn.ca",
+    userID: "aJ48lW",
+  },
+  i3BoGr: {
+    longURL: "https://www.google.ca",
+    userID: "aJ48lW",
+  },
 };
 
 
@@ -45,6 +51,7 @@ app.get("/register", (req,res) => {
   res.render("user_registration", templateVars);
   
 });
+
 
 app.post('/register', (req, res) => {
   const { email, password } = req.body;
@@ -83,7 +90,13 @@ app.post('/register', (req, res) => {
 
 app.get("/urls", (req,res) => {
   const userId = req.cookies["user_id"];
-  const templateVars = {urls: urlDatabase, user: users[userId]};
+  
+  if (!userId) {
+    return res.redirect("/login");
+  }
+  const templateVars = {urls: urlsForUser(userId) , user: users[userId]};
+ 
+//write a function that filters urlDatabase and returns urls thaT BELONGS TO USER.
 
   res.render("urls_index", templateVars);
 });
@@ -161,7 +174,7 @@ app.post('/urls/:id', (req, res) => {
   const id = req.params.id;
   const longURL = req.body.longURL;
   // Update the stored long URL based on the new value in req.body
-  urlDatabase[id] = longURL;
+  urlDatabase[id].longURL = longURL;
   res.redirect('/urls');
 });
 
@@ -193,7 +206,10 @@ app.post("/urls", (req, res) => {
     // add the URL to the database and redirect to the URLs index page
     const shortURL = generateRandomString();
     const longURL = req.body.longURL;
-    urlDatabase[shortURL] = longURL;
+    urlDatabase[shortURL] = {
+      longURL,
+      userID:req.cookies.user_id
+    };
     res.redirect(`/urls/${shortURL}`);
   }
 });
@@ -207,7 +223,7 @@ app.get("/u/:id", (req, res) => {
     res.status(404).send("This short URL does not exist.");
   } else {
     // redirect to the long URL
-    res.redirect(longURL);
+    res.redirect(longURL.longURL);
   }
 });
 
