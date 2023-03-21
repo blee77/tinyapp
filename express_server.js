@@ -6,6 +6,7 @@ const PORT = 8080; // default port 8080
 const morgan = require('morgan');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
+const bcrypt = require("bcryptjs");
 
 const { getUserByEmail, generateRandomString } = require('./helper');
 //Middleware
@@ -55,6 +56,9 @@ app.get("/register", (req,res) => {
 
 app.post('/register', (req, res) => {
   const { email, password } = req.body;
+
+  const hashedPassword = bcrypt.hashSync(password, 10); // hash the password
+
   if (!email || !password) {
     return res.status(400).json({ message: 'Email and password are required' });
   }
@@ -70,8 +74,10 @@ app.post('/register', (req, res) => {
   users[userId] = {
     id: userId,
     email,
-    password
+   
+    password:hashedPassword
   };
+  console.log(users);
   
   // Set user_id cookie with newly generated ID
   res.cookie('user_id', userId);
@@ -87,19 +93,43 @@ app.post('/register', (req, res) => {
 //send a success or fail response to the user. S
 //----------------------------------------------------------
 
-
-app.get("/urls", (req,res) => {
-  const userId = req.cookies["user_id"];
-  
-  if (!userId) {
-    return res.redirect("/login");
+const urlsForUser = function(id) {
+  let filteredUrls = {};
+  for (let shortId in urlDatabase) {
+    if (urlDatabase[shortId].userID === id) {
+      filteredUrls[shortId] = urlDatabase[shortId];
+    }
   }
-  const templateVars = {urls: urlsForUser(userId) , user: users[userId]};
- 
-//write a function that filters urlDatabase and returns urls thaT BELONGS TO USER.
+  return filteredUrls;
+};
 
+app.get("/urls", (req, res) => {
+  const userId = req.cookies.user_id;
+  if (!userId) {
+    res.status(401).send('Please log in or register first.');
+    return;
+  }
+  const userUrls = urlsForUser(userId);
+  const templateVars = { urls: userUrls, user: users[userId] };
   res.render("urls_index", templateVars);
 });
+
+
+
+// app.get("/urls", (req,res) => {
+//   const userId = req.cookies["user_id"];
+  
+//   if (!userId) {
+//     return res.redirect("/login");
+//   }
+//   const templateVars = {urls: urlsForUser(userId) , user: users[userId]};
+ 
+// //write a function that filters urlDatabase and returns urls thaT BELONGS TO USER.
+
+//   res.render("urls_index", templateVars);
+// });
+
+
 
 
 app.get("/urls/new", (req, res) => {
@@ -130,6 +160,11 @@ app.get("/urls/:id", (req,res) => {
 
 
 //----------------------------------
+app.get('/login', (req, res) => {
+
+  res.render('login', {user: null });
+});
+
 
 // Define the login handler
 app.post('/login', (req, res) => {
@@ -153,9 +188,22 @@ app.post('/login', (req, res) => {
   // Set the user_id cookie with the matching user's ID
   res.cookie('user_id', existingUser.id);
 
+
+
+  const isPasswordMatch = bcrypt.compareSync(password, user.password);
+  if (!isPasswordMatch) {
+    return res.status(401).json({ message: "Invalid credentials" });
+  }
+  
+  
+
+
+
   // Redirect to /urls
   res.redirect('/urls');
 });
+
+
 
 // Define the logout handler
 app.post('/logout', (req, res) => {
@@ -191,10 +239,31 @@ app.get("/", (req, res) => {
   }
 });
 
-app.post("/urls/:id/delete", (req,res) => {
+
+app.post("/urls/:id/delete", (req, res) => {
+  const userId = req.cookies.user_id;
+  if (!userId) {
+    res.status(401).send('Please log in or register first.');
+    return;
+  }
+  const url = urlDatabase[req.params.id];
+  if (!url) {
+    res.status(404).send('URL not found.');
+    return;
+  }
+  if (url.userID !== userId) {
+    res.status(403).send('You do not have permission to delete this URL.');
+    return;
+  }
   delete urlDatabase[req.params.id];
-  res.redirect(`/urls`);
+  res.redirect("/urls");
 });
+
+
+// app.post("/urls/:id/delete", (req,res) => {
+//   delete urlDatabase[req.params.id];
+//   res.redirect(`/urls`);
+// });
 
 
 app.post("/urls", (req, res) => {
@@ -226,13 +295,7 @@ app.get("/u/:id", (req, res) => {
 });
 
 // Render login page with GET request to /login
-app.get('/login', (req, res) => {
-  
-  if (req.cookies.user_id) {
-    return res.status(401).send("You must be logged in to shorten URLs.");
-  }
-  res.render('login', {user: null });
-});
+
 
 
 
