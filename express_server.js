@@ -180,17 +180,15 @@ app.post('/login', (req, res) => {
   }
 
   // If password does not match, send 403 response
-  if (existingUser.password !== password) {
-    res.status(403).send('Invalid email or password.');
-    return;
-  }
+  // if (existingUser.password !== password) {
+  //   res.status(403).send('Invalid email or password.');
+  //   return;
+  // }
 
   // Set the user_id cookie with the matching user's ID
   res.cookie('user_id', existingUser.id);
 
-
-
-  const isPasswordMatch = bcrypt.compareSync(password, user.password);
+  const isPasswordMatch = bcrypt.compareSync(password, existingUser.password);
   if (!isPasswordMatch) {
     return res.status(401).json({ message: "Invalid credentials" });
   }
