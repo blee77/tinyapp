@@ -5,14 +5,22 @@ const PORT = 8080; // default port 8080
 
 const morgan = require('morgan');
 const bodyParser = require('body-parser');
-const cookieParser = require('cookie-parser');
+// const cookieParser = require('cookie-parser');
+const cookieSession = require('cookie-session');
 const bcrypt = require("bcryptjs");
 
 const { getUserByEmail, generateRandomString } = require('./helper');
 //Middleware
 app.use(morgan('dev'));
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cookieParser());
+// app.use(cookieParser());
+app.use(cookieSession({
+  name: 'session',
+  keys: ['abcdefghijkl123'],
+
+  // Cookie Options
+  maxAge: 24 * 60 * 60 * 1000 // 24 hours
+}));
 app.use(express.urlencoded({ extended: true }));
 //view engine
 app.set("view engine", "ejs");
@@ -45,7 +53,7 @@ const users = {
 
 
 app.get("/register", (req,res) => {
-  if (req.cookies.user_id) {
+  if (req.session.userId) {
     res.redirect("/urls");
   }
   const templateVars = { user:false};
@@ -80,18 +88,11 @@ app.post('/register', (req, res) => {
   console.log(users);
   
   // Set user_id cookie with newly generated ID
-  res.cookie('user_id', userId);
+  req.session.userId = userId;
   return res.redirect("/urls");
 
 });
 
-
-
-//received the data  R
-//check if that data exists C
-//validate the data V
-//send a success or fail response to the user. S
-//----------------------------------------------------------
 
 const urlsForUser = function(id) {
   let filteredUrls = {};
@@ -104,7 +105,7 @@ const urlsForUser = function(id) {
 };
 
 app.get("/urls", (req, res) => {
-  const userId = req.cookies.user_id;
+  const userId = req.session.userId;
   if (!userId) {
     res.status(401).send('Please log in or register first.');
     return;
@@ -116,24 +117,9 @@ app.get("/urls", (req, res) => {
 
 
 
-// app.get("/urls", (req,res) => {
-//   const userId = req.cookies["user_id"];
-  
-//   if (!userId) {
-//     return res.redirect("/login");
-//   }
-//   const templateVars = {urls: urlsForUser(userId) , user: users[userId]};
- 
-// //write a function that filters urlDatabase and returns urls thaT BELONGS TO USER.
-
-//   res.render("urls_index", templateVars);
-// });
-
-
-
 
 app.get("/urls/new", (req, res) => {
-  const userId = req.cookies["user_id"];
+  const userId = req.session.userId;
   const templateVars = { user: users[userId] };
 
   if (!userId) {
@@ -145,7 +131,7 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:id", (req,res) => {
-  const userId = req.cookies['user_id'];
+  const userId = req.session.userId;
   const templateVars = {
     id: req.params.id,
     longURL: urlDatabase[req.params.id],
@@ -179,14 +165,7 @@ app.post('/login', (req, res) => {
     return;
   }
 
-  // If password does not match, send 403 response
-  // if (existingUser.password !== password) {
-  //   res.status(403).send('Invalid email or password.');
-  //   return;
-  // }
-
-  // Set the user_id cookie with the matching user's ID
-  res.cookie('user_id', existingUser.id);
+  req.session.userId = existingUser.id;
 
   const isPasswordMatch = bcrypt.compareSync(password, existingUser.password);
   if (!isPasswordMatch) {
@@ -206,8 +185,8 @@ app.post('/login', (req, res) => {
 // Define the logout handler
 app.post('/logout', (req, res) => {
   // Clear the user_id cookie
-  res.clearCookie('user_id');
-
+  req.session.userId = null;
+  
   // Redirect to /login
   res.redirect('/login');
 });
@@ -229,7 +208,7 @@ app.post('/urls/:id', (req, res) => {
 
 
 app.get("/", (req, res) => {
-  const userId = req.cookies['user_id'];
+  const userId = req.session.userId;
   if (userId) {
     res.redirect("/urls");
   } else {
@@ -239,7 +218,7 @@ app.get("/", (req, res) => {
 
 
 app.post("/urls/:id/delete", (req, res) => {
-  const userId = req.cookies.user_id;
+  const userId = req.session.userId;
   if (!userId) {
     res.status(401).send('Please log in or register first.');
     return;
@@ -265,7 +244,7 @@ app.post("/urls/:id/delete", (req, res) => {
 
 
 app.post("/urls", (req, res) => {
-  if (!req.cookies.user_id) {
+  if (!req.session.userId) {
     res.status(401).send("You must be logged in to shorten URLs.");
   } else {
     // add the URL to the database and redirect to the URLs index page
@@ -273,7 +252,7 @@ app.post("/urls", (req, res) => {
     const longURL = req.body.longURL;
     urlDatabase[shortURL] = {
       longURL,
-      userID:req.cookies.user_id
+      userID:req.session.userId
     };
     res.redirect(`/urls/${shortURL}`);
   }
@@ -292,12 +271,6 @@ app.get("/u/:id", (req, res) => {
   }
 });
 
-// Render login page with GET request to /login
-
-
-
-
-//------------------------------------
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
@@ -305,4 +278,4 @@ app.listen(PORT, () => {
 
 
 
-//-----------------
+
