@@ -1,6 +1,6 @@
 
 // helper function to lookup user by email
-const getUserByEmail = function(email, users) {
+const getUserByEmail = function (email, users) {
   for (const user of Object.values(users)) {
     if (user.email === email) {
       return user;
@@ -20,4 +20,4 @@ const generateRandomString = () => {
   return result;
 };
 
-module.exports = {getUserByEmail, generateRandomString};
+module.exports = { getUserByEmail, generateRandomString };

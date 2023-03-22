@@ -5,7 +5,6 @@ const PORT = 8080; // default port 8080
 
 const morgan = require('morgan');
 const bodyParser = require('body-parser');
-// const cookieParser = require('cookie-parser');
 const cookieSession = require('cookie-session');
 const bcrypt = require("bcryptjs");
 
@@ -13,7 +12,6 @@ const { getUserByEmail, generateRandomString } = require('./helper');
 //Middleware
 app.use(morgan('dev'));
 app.use(bodyParser.urlencoded({ extended: true }));
-// app.use(cookieParser());
 app.use(cookieSession({
   name: 'session',
   keys: ['abcdefghijkl123'],
@@ -36,8 +34,6 @@ const urlDatabase = {
   },
 };
 
-
-//-----------------------------------------------------------
 const users = {
   userRandomID: {
     id: "userRandomID",
@@ -52,13 +48,13 @@ const users = {
 };
 
 
-app.get("/register", (req,res) => {
+app.get("/register", (req, res) => {
   if (req.session.userId) {
     res.redirect("/urls");
   }
-  const templateVars = { user:false};
+  const templateVars = { user: false };
   res.render("user_registration", templateVars);
-  
+
 });
 
 
@@ -72,7 +68,7 @@ app.post('/register', (req, res) => {
   }
 
   const existingUser = getUserByEmail(email, users);
-  
+
   if (existingUser) {
     return res.status(400).json({ message: 'Email already registered' });
   }
@@ -82,11 +78,11 @@ app.post('/register', (req, res) => {
   users[userId] = {
     id: userId,
     email,
-   
-    password:hashedPassword
+
+    password: hashedPassword
   };
   console.log(users);
-  
+
   // Set user_id cookie with newly generated ID
   req.session.userId = userId;
   return res.redirect("/urls");
@@ -94,7 +90,7 @@ app.post('/register', (req, res) => {
 });
 
 
-const urlsForUser = function(id) {
+const urlsForUser = function (id) {
   let filteredUrls = {};
   for (let shortId in urlDatabase) {
     if (urlDatabase[shortId].userID === id) {
@@ -116,8 +112,6 @@ app.get("/urls", (req, res) => {
 });
 
 
-
-
 app.get("/urls/new", (req, res) => {
   const userId = req.session.userId;
   const templateVars = { user: users[userId] };
@@ -130,7 +124,7 @@ app.get("/urls/new", (req, res) => {
   }
 });
 
-app.get("/urls/:id", (req,res) => {
+app.get("/urls/:id", (req, res) => {
   const userId = req.session.userId;
   const templateVars = {
     id: req.params.id,
@@ -142,13 +136,9 @@ app.get("/urls/:id", (req,res) => {
 });
 
 
-
-
-
-//----------------------------------
 app.get('/login', (req, res) => {
 
-  res.render('login', {user: null });
+  res.render('login', { user: null });
 });
 
 
@@ -171,11 +161,6 @@ app.post('/login', (req, res) => {
   if (!isPasswordMatch) {
     return res.status(401).json({ message: "Invalid credentials" });
   }
-  
-  
-
-
-
   // Redirect to /urls
   res.redirect('/urls');
 });
@@ -186,13 +171,10 @@ app.post('/login', (req, res) => {
 app.post('/logout', (req, res) => {
   // Clear the user_id cookie
   req.session.userId = null;
-  
+
   // Redirect to /login
   res.redirect('/login');
 });
-
-  
-
 
 
 app.post('/urls/:id', (req, res) => {
@@ -202,9 +184,6 @@ app.post('/urls/:id', (req, res) => {
   urlDatabase[id].longURL = longURL;
   res.redirect('/urls');
 });
-
-
-
 
 
 app.get("/", (req, res) => {
@@ -237,12 +216,6 @@ app.post("/urls/:id/delete", (req, res) => {
 });
 
 
-// app.post("/urls/:id/delete", (req,res) => {
-//   delete urlDatabase[req.params.id];
-//   res.redirect(`/urls`);
-// });
-
-
 app.post("/urls", (req, res) => {
   if (!req.session.userId) {
     res.status(401).send("You must be logged in to shorten URLs.");
@@ -252,7 +225,7 @@ app.post("/urls", (req, res) => {
     const longURL = req.body.longURL;
     urlDatabase[shortURL] = {
       longURL,
-      userID:req.session.userId
+      userID: req.session.userId
     };
     res.redirect(`/urls/${shortURL}`);
   }
