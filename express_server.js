@@ -235,6 +235,7 @@ app.post("/urls", (req, res) => {
 
 app.get("/u/:id", (req, res) => {
   const shortURL = req.params.id;
+  //this is an object no longer a string so must change to an objext const urlObj = urlDatabase[shortURL]; 
   const longURL = urlDatabase[shortURL];
   if (!longURL) {
     res.status(404).send("This short URL does not exist.");
