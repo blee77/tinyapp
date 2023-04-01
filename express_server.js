@@ -48,6 +48,22 @@ const users = {
 };
 
 
+app.get("/", (req, res) => {
+  const userId = req.session.userId;
+  if (userId) {
+    res.redirect("/urls");
+  } else {
+    res.redirect("/login");
+  }
+});
+
+
+app.get('/login', (req, res) => {
+
+  res.render('login', { user: null });
+});
+
+
 app.get("/register", (req, res) => {
   if (req.session.userId) {
     res.redirect("/urls");
@@ -56,39 +72,6 @@ app.get("/register", (req, res) => {
   res.render("user_registration", templateVars);
 
 });
-
-
-app.post('/register', (req, res) => {
-  const { email, password } = req.body;
-
-  const hashedPassword = bcrypt.hashSync(password, 10); // hash the password
-
-  if (!email || !password) {
-    return res.status(400).json({ message: 'Email and password are required' });
-  }
-
-  const existingUser = getUserByEmail(email, users);
-
-  if (existingUser) {
-    return res.status(400).json({ message: 'Email already registered' });
-  }
-
-  const userId = generateRandomString(); // generate random user ID
-
-  users[userId] = {
-    id: userId,
-    email,
-
-    password: hashedPassword
-  };
-  console.log(users);
-
-  // Set user_id cookie with newly generated ID
-  req.session.userId = userId;
-  return res.redirect("/urls");
-
-});
-
 
 const urlsForUser = function (id) {
   let filteredUrls = {};
@@ -124,6 +107,26 @@ app.get("/urls/new", (req, res) => {
   }
 });
 
+
+
+app.get("/u/:id", (req, res) => {
+  const shortURL = req.params.id;
+  //this is an object no longer a string so must change to an objext const urlObj = urlDatabase[shortURL]; 
+  const longURL = urlDatabase[shortURL];
+  if (!longURL) {
+    res.status(404).send("This short URL does not exist.");
+  } else {
+    // redirect to the long URL
+    res.redirect(longURL.longURL);
+  }
+});
+
+
+// GET /urls/:id- if user is not logged in or the user is not the owner of the URL, 
+// it should return HTML with a relevant error message. Currently user who do not own
+//  the URL or are not logged in can access this page which is a security issue.
+
+
 app.get("/urls/:id", (req, res) => {
   const userId = req.session.userId;
   const templateVars = {
@@ -132,13 +135,16 @@ app.get("/urls/:id", (req, res) => {
     user: users[userId]
   };
 
-  res.render("urls_show", templateVars);
-});
+  if (!userId) {
+    res.redirect("/login");
+    return res.status(401).send("user is not the owner of the URL");
 
+  } else {
+    // render the new URL form
+    res.render('urls_new', templateVars);
+  }
 
-app.get('/login', (req, res) => {
-
-  res.render('login', { user: null });
+  // res.render("urls_show", templateVars);
 });
 
 
@@ -151,7 +157,7 @@ app.post('/login', (req, res) => {
 
   // If user not found, send 403 response
   if (!existingUser) {
-    res.status(403).send('Invalid email or password.');
+    res.status(403).send('Invalid User.');
     return;
   }
 
@@ -159,18 +165,48 @@ app.post('/login', (req, res) => {
 
   const isPasswordMatch = bcrypt.compareSync(password, existingUser.password);
   if (!isPasswordMatch) {
-    return res.status(401).json({ message: "Invalid credentials" });
+    return res.status(401).send("Invalid credentials");
   }
   // Redirect to /urls
   res.redirect('/urls');
 });
 
 
+app.post('/register', (req, res) => {
+  const { email, password } = req.body;
+
+  const hashedPassword = bcrypt.hashSync(password, 10); // hash the password
+
+  if (!email || !password) {
+    return res.status(400).send('Email and password are required');
+  }
+
+  const existingUser = getUserByEmail(email, users);
+
+  if (existingUser) {
+    return res.status(400).send('Email already registered');
+  }
+
+  const userId = generateRandomString(); // generate random user ID
+
+  users[userId] = {
+    id: userId,
+    email,
+    password: hashedPassword
+  };
+  console.log(users);
+
+  // Set user_id cookie with newly generated ID
+  req.session.userId = userId;
+  return res.redirect("/urls");
+
+});
+
 
 // Define the logout handler
 app.post('/logout', (req, res) => {
   // Clear the user_id cookie
-  req.session.userId = null;
+  req.session = null;
 
   // Redirect to /login
   res.redirect('/login');
@@ -186,14 +222,6 @@ app.post('/urls/:id', (req, res) => {
 });
 
 
-app.get("/", (req, res) => {
-  const userId = req.session.userId;
-  if (userId) {
-    res.redirect("/urls");
-  } else {
-    res.redirect("/login");
-  }
-});
 
 
 app.post("/urls/:id/delete", (req, res) => {
@@ -228,20 +256,6 @@ app.post("/urls", (req, res) => {
       userID: req.session.userId
     };
     res.redirect(`/urls/${shortURL}`);
-  }
-});
-
-
-
-app.get("/u/:id", (req, res) => {
-  const shortURL = req.params.id;
-  //this is an object no longer a string so must change to an objext const urlObj = urlDatabase[shortURL]; 
-  const longURL = urlDatabase[shortURL];
-  if (!longURL) {
-    res.status(404).send("This short URL does not exist.");
-  } else {
-    // redirect to the long URL
-    res.redirect(longURL.longURL);
   }
 });
 
