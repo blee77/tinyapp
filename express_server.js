@@ -136,15 +136,17 @@ app.get("/urls/:id", (req, res) => {
   };
 
   if (!userId) {
-    res.redirect("/login");
-    return res.status(401).send("user is not the owner of the URL");
+    
+    return res.status(401).send("Unauthorized Access");
 
+  } else if (!urlDatabase[req.params.id] || userId !== urlDatabase[req.params.id].userID) {
+
+    return res.status(401).send("User does not own the URL");
   } else {
     // render the new URL form
-    res.render('urls_new', templateVars);
+    res.render('urls_show', templateVars);
   }
-
-  // res.render("urls_show", templateVars);
+  
 });
 
 
@@ -161,12 +163,14 @@ app.post('/login', (req, res) => {
     return;
   }
 
-  req.session.userId = existingUser.id;
+  
 
   const isPasswordMatch = bcrypt.compareSync(password, existingUser.password);
   if (!isPasswordMatch) {
     return res.status(401).send("Invalid credentials");
   }
+
+  req.session.userId = existingUser.id;
   // Redirect to /urls
   res.redirect('/urls');
 });
